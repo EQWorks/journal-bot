@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "routine": "node routine.js"
+  },
   "dependencies": {
     "asana": "^0.17.3"
   }
