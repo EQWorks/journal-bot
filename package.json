@@ -1,12 +1,30 @@
 {
-  "name": "avail-bot",
+  "name": "@eqworks/avail-bot",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "routine": "node routine.js"
+    "routine": "node ./src/routine.js",
+    "availability": "env $(print-env) node ./src/availability",
+    "lint": "eslint --ext .js ./src/.",
+    "lint:fix": "eslint --ext .js ./src/. --fix",
+    "lint:nowarn": "eslint --ext .js ./src/. --quiet",
+    "lint:watch": "esw --ext .js ./src/. --watch",
+    "lint:watch:fix": "esw --ext .js ./src/. --fix --watch",
+    "lint:watch:nowarn": "esw --ext .js ./src/. --quiet --watch",
+    "lint:watch:nowarn:fix": "esw --ext .js ./src/. --quiet --watch --fix"
   },
   "dependencies": {
     "asana": "^0.17.3"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.0.3",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-plugin-import": "^2.19.1",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "eslint-plugin-react": "^7.17.0",
+    "eslint-plugin-react-hooks": "^2.3.0",
+    "eslint-watch": "^6.0.1"
   }
 }
