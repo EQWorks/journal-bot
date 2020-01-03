@@ -3,7 +3,7 @@ const client = require('./client')
 
 const { ASANA_PROJECT = '1152701043959235' } = process.env
 
-const pastFilter = (task) => new Date(`${task.due_at ? task.due_at : `${task.due_on}T23:59:59}`}`)
+const pastFilter = (task) => new Date(`${task.due_at || `${task.due_on}T23:59:59.999Z}`}`)
   < new Date()
 
 const markPastDue = (project_id = ASANA_PROJECT) => client.projects.tasks(project_id, {
