@@ -3,14 +3,15 @@ const client = require('./client')
 
 const { ASANA_PROJECT = '1152701043959235' } = process.env
 
-const pastFilter = (t) => new Date(t.due_at || `${t.due_on}T23:59:59.999Z}`) < new Date()
 
-const markPastDue = (project_id = ASANA_PROJECT) => client.projects.tasks(project_id, {
+const markPastDue = (project = ASANA_PROJECT) => client.projects.tasks(project, {
   completed_since: 'now',
-  opt_fields: 'due_on,due_at,name,notes,completed',
+  opt_fields: 'due_on,due_at,completed',
 }).then(({ data }) => {
-  const past = data.filter(pastFilter)
-  return Promise.all(past.map(({ gid }) => client.tasks.update(gid, { completed: true })))
+  const marks = data
+    .filter((t) => new Date(`${t.due_at ? t.due_at : `${t.due_on}T23:59:59.999Z`}`) < new Date())
+    .map(({ gid }) => client.tasks.update(gid, { completed: true }))
+  return Promise.all(marks)
 })
 
 if (typeof require !== 'undefined' && require.main === module) {
