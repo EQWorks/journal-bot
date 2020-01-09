@@ -15,7 +15,8 @@ const markPastDue = (project = ASANA_PROJECT) => client.projects.tasks(project, 
 })
 
 if (typeof require !== 'undefined' && require.main === module) {
-  markPastDue().then((res) => {
+  const [project = ASANA_PROJECT] = process.argv.slice(2)
+  markPastDue(project).then((res) => {
     /* eslint-disable */
     console.log(res)
     console.log(`Daily sweeping done! ${res.length} past time slots marked as complete!`)
