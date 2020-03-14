@@ -1,8 +1,10 @@
 const client = require('./client')
 
 
-const { ASANA_PROJECT = '1152701043959235' } = process.env
+const { ASANA_PROJECT = '1152701043959235', BACKOFF = 30 } = process.env
 
+
+const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const markPastDue = (project = ASANA_PROJECT) => client.projects.tasks(project, {
   completed_since: 'now',
@@ -14,16 +16,26 @@ const markPastDue = (project = ASANA_PROJECT) => client.projects.tasks(project, 
   return Promise.all(marks)
 })
 
-if (typeof require !== 'undefined' && require.main === module) {
+const runner = async (time = 0) => {
   const [project = ASANA_PROJECT] = process.argv.slice(2)
-  markPastDue(project).then((res) => {
-    /* eslint-disable */
-    console.log(res)
-    console.log(`Daily sweeping done! ${res.length} past time slots marked as complete!`)
-    /* eslint-enable */
+  const backoff = parseInt(BACKOFF * (time + 1))
+  try {
+    await timeout(5000)
+    await markPastDue(project)
     process.exit(0)
-  }).catch((err) => {
-    console.error(err)
-    process.exit(1)
-  })
+  } catch (err) {
+    const { response: { status } = {}, message } = err
+    if (status === 429 && time < 3) { // retry on rate limit
+      console.warn(`${message}, retry in ${backoff} seconds`)
+      await timeout(backoff * 1000)
+      runner(time + 1)
+    } else { // fail on other reasons
+      console.error(err)
+      process.exit(1)
+    }
+  }
+}
+
+if (typeof require !== 'undefined' && require.main === module) {
+  runner()
 }
