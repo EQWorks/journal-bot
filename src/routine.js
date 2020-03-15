@@ -20,7 +20,6 @@ const runner = async (time = 0) => {
   const [project = ASANA_PROJECT] = process.argv.slice(2)
   const backoff = parseInt(BACKOFF * (time + 1))
   try {
-    await timeout(5000)
     await markPastDue(project)
     process.exit(0)
   } catch (err) {
@@ -28,7 +27,7 @@ const runner = async (time = 0) => {
     if (status === 429 && time < 3) { // retry on rate limit
       console.warn(`${message}, retry in ${backoff} seconds`)
       await timeout(backoff * 1000)
-      runner(time + 1)
+      await runner(time + 1)
     } else { // fail on other reasons
       console.error(err)
       process.exit(1)
