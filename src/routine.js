@@ -23,9 +23,10 @@ const runner = async (time = 0) => {
     await markPastDue(project)
     process.exit(0)
   } catch (err) {
-    const { response: { status } = {}, message } = err
-    if (status === 429 && time < 3) { // retry on rate limit
-      console.warn(`${message}, retry in ${backoff} seconds`)
+    // const { response: { status } = {}, message } = err
+    // if (status === 429 && time < 3) { // retry on rate limit
+    if (time < 3) {
+      console.warn(`retry in ${backoff} seconds`)
       await timeout(backoff * 1000)
       await runner(time + 1)
     } else { // fail on other reasons
