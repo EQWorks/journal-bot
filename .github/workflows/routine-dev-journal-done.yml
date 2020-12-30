@@ -34,3 +34,8 @@ jobs:
         env:
           ASANA_TOKEN: ${{ secrets.ASANA_TOKEN }}
         run: yarn routine 1153484903445659
+
+      - name: Create new journals
+        env:
+          ASANA_TOKEN: ${{ secrets.ASANA_TOKEN }}
+        run: yarn routine 1153484903445659 create_journal
