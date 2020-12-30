@@ -1,4 +1,5 @@
 const client = require('./client')
+const { createJournals } = require('./dev-journal')
 
 
 const { ASANA_PROJECT = '1152701043959235', BACKOFF = 30 } = process.env
@@ -15,11 +16,15 @@ const markPastDue = (project = ASANA_PROJECT) => client.projects.tasks(project, 
   return Promise.all(marks)
 })
 
-const runner = async (time = 0, fn) => {
-  const [project = ASANA_PROJECT] = process.argv.slice(2)
+const runner = async (time = 0) => {
+  const [project = ASANA_PROJECT, action] = process.argv.slice(2)
   const backoff = parseInt(BACKOFF * (time + 1))
   try {
-    await fn(project)
+    if (action === 'create_journal') {
+      await createJournals(project)
+    } else {
+      await markPastDue(project)
+    }
     process.exit(0)
   } catch (err) {
     // const { response: { status } = {}, message } = err
@@ -27,7 +32,7 @@ const runner = async (time = 0, fn) => {
     if (time < 3) {
       console.warn(`retry in ${backoff} seconds`)
       await timeout(backoff * 1000)
-      await runner(time + 1, fn)
+      await runner(time + 1)
     } else { // fail on other reasons
       console.error(err)
       process.exit(1)
@@ -36,5 +41,7 @@ const runner = async (time = 0, fn) => {
 }
 
 if (typeof require !== 'undefined' && require.main === module) {
-  runner(0, markPastDue)
+  runner()
 }
+
+module.exports = { runner }
