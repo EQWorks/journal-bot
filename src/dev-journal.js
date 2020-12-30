@@ -55,6 +55,7 @@ module.exports.createJournals = async () => {
     const prevJournals = await getLWDJournals()
     prevJournals.map(async ({
       name,
+      assignee,
       completedSubTasks,
       incompleteSubTasks,
       projects,
@@ -65,8 +66,9 @@ module.exports.createJournals = async () => {
       const createJournalTasks = (journal, tasks) => tasks
         .forEach((t) => client.tasks.createSubtaskForTask(journal, { name: t.name }))
 
-      const createJournalParams = {
+      const params = {
         name: `TEST-${name}`,
+        assignee,
         completed: false,
         due_on: `${new Date().toISOString().split('T')[0]}`,
         projects: [projects],
@@ -74,7 +76,7 @@ module.exports.createJournals = async () => {
         custom_fields: { [customField]: formatLWD(completedSubTasks) },
       }
 
-      const newJournal = await client.tasks.createTask(createJournalParams)
+      const newJournal = await client.tasks.createTask(params)
       createJournalTasks(newJournal?.gid, incompleteSubTasks)
     })
   } catch (e) {
