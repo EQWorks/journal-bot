@@ -52,7 +52,7 @@ const formatLWD = (tasks) => {
 module.exports.createJournals = async (DEV_JOURNAL) => {
   try {
     const prevJournals = await getLWDJournals(DEV_JOURNAL)
-    prevJournals.map(async ({
+    await Promise.all(prevJournals.map(async ({
       name,
       assignee,
       completedSubTasks,
@@ -61,10 +61,6 @@ module.exports.createJournals = async (DEV_JOURNAL) => {
       workspace,
       customField,
     }) => {
-      // create sub tasks for each journal (mind rate limiting due to tasks loop)
-      const createJournalTasks = (journal, tasks) => tasks
-        .forEach((t) => client.tasks.createSubtaskForTask(journal, { name: t.name }))
-
       const params = {
         name,
         assignee,
@@ -74,10 +70,15 @@ module.exports.createJournals = async (DEV_JOURNAL) => {
         workspace,
         custom_fields: { [customField]: formatLWD(completedSubTasks) },
       }
+      const { gid } = await client.tasks.createTask(params)
+      if (!gid) {
+        return
+      }
 
-      const newJournal = await client.tasks.createTask(params)
-      createJournalTasks(newJournal?.gid, incompleteSubTasks)
-    })
+      await Promise.all(incompleteSubTasks.map((t) => (
+        client.tasks.createSubtaskForTask(gid, { name: t.name })
+      )))
+    }))
   } catch (e) {
     console.error(`Failed to create new journals: ${e}`)
   }

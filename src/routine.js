@@ -43,5 +43,3 @@ const runner = async (time = 0) => {
 if (typeof require !== 'undefined' && require.main === module) {
   runner()
 }
-
-module.exports = { runner }
