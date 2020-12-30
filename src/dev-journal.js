@@ -1,7 +1,6 @@
 const client = require('./client')
 
 
-const DEV_JOURNAL = '1153484903445659'
 const isMonday = new Date().getDay() === 1
 const subtractMe = isMonday ? 3 : 1
 const prevWorkDay = new Date(new Date().setDate(new Date().getDate() - subtractMe))
@@ -9,7 +8,7 @@ const prevWorkDay = new Date(new Date().setDate(new Date().getDate() - subtractM
   .split('T')[0]
 
 // get last-work-day journals
-const getLWDJournals = async () => {
+const getLWDJournals = async (DEV_JOURNAL) => {
   const prevDayTasks = await client.tasks
     .getTasksForProject(
       DEV_JOURNAL,
@@ -50,9 +49,9 @@ const formatLWD = (tasks) => {
 }
 
 // create new journals
-module.exports.createJournals = async () => {
+module.exports.createJournals = async (DEV_JOURNAL) => {
   try {
-    const prevJournals = await getLWDJournals()
+    const prevJournals = await getLWDJournals(DEV_JOURNAL)
     prevJournals.map(async ({
       name,
       assignee,
@@ -67,7 +66,7 @@ module.exports.createJournals = async () => {
         .forEach((t) => client.tasks.createSubtaskForTask(journal, { name: t.name }))
 
       const params = {
-        name: `TEST-${name}`,
+        name,
         assignee,
         completed: false,
         due_on: `${new Date().toISOString().split('T')[0]}`,

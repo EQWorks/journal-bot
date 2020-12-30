@@ -1,8 +1,8 @@
 const client = require('./client')
+const { createJournals } = require('./dev-journal')
 
 
 const { ASANA_PROJECT = '1152701043959235', BACKOFF = 30 } = process.env
-
 
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -21,6 +21,7 @@ const runner = async (time = 0) => {
   const backoff = parseInt(BACKOFF * (time + 1))
   try {
     await markPastDue(project)
+    await createJournals(project)
     process.exit(0)
   } catch (err) {
     // const { response: { status } = {}, message } = err
