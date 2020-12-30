@@ -14,7 +14,7 @@
     "lint:watch:nowarn:fix": "esw --ext .js ./src/. --quiet --watch --fix"
   },
   "dependencies": {
-    "asana": "^0.17.3"
+    "asana": "^0.18.5"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.3",
