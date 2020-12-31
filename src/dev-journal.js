@@ -61,8 +61,17 @@ module.exports.createJournals = async (DEV_JOURNAL) => {
       workspace,
       customField,
     }) => {
+      const nameTransform = (name) => {
+        const m = name.match(/(?<person>.*)[(]\d+[)]$/)
+        if (m) {
+          const { groups: { person } } = m
+          return `${person} (${incompleteSubTasks.length})`
+        }
+        return name
+      }
+      nameTransform(name)
       const params = {
-        name,
+        name: nameTransform(name),
         assignee,
         completed: false,
         due_on: `${new Date().toISOString().split('T')[0]}`,
