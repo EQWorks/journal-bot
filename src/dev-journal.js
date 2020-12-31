@@ -2,6 +2,7 @@ const client = require('./client')
 
 
 const isMonday = new Date().getDay() === 1
+const isWeekend = new Date().getDay() === 6 || new Date().getDay() === 0
 const subtractMe = isMonday ? 3 : 1
 const prevWorkDay = new Date(new Date().setDate(new Date().getDate() - subtractMe))
   .toISOString()
@@ -50,6 +51,9 @@ const formatLWD = (tasks) => {
 
 // create new journals
 module.exports.createJournals = async (DEV_JOURNAL) => {
+  if (isWeekend) {
+    return
+  }
   try {
     const prevJournals = await getLWDJournals(DEV_JOURNAL)
     await Promise.all(prevJournals.map(async ({
@@ -69,7 +73,6 @@ module.exports.createJournals = async (DEV_JOURNAL) => {
         }
         return name
       }
-      nameTransform(name)
       const params = {
         name: nameTransform(name),
         assignee,
