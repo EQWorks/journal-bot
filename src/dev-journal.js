@@ -69,7 +69,7 @@ module.exports.createJournals = async (DEV_JOURNAL) => {
         const m = name.match(/(?<person>.*)[(]\d+[)]$/)
         if (m) {
           const { groups: { person } } = m
-          return `${person} (${incompleteSubTasks.length})`
+          return `${person.trim()} (${incompleteSubTasks.length})`
         }
         return name
       }
