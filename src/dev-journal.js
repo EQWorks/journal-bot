@@ -1,18 +1,18 @@
 const client = require('./client')
 
 
-const _getDay = (date) => (day) => new Date(date).toUTCString().toLocaleLowerCase().startsWith(day)
+const _getDay = (date) => (day) => new Date(date).getUTCDay() === day
 const _checkDateRange = (start_on, due_on) => (date) => (
   (date >= start_on && date <= due_on) || date === due_on
 )
 const currentDay = _getDay(new Date())
-const subtractMe = (date) => (_getDay(date)('mon') ? 3 : 1)
+const subtractMe = (date) => (_getDay(date)(1) ? 3 : 1)
 const prevWorkDay = (date) => (
   new Date(new Date().setDate(new Date(date).getUTCDate() - subtractMe(date)))
 ).toISOString().split('T')[0]
 
 const today = `${new Date().toISOString().split('T')[0]}`
-const isWeekend = currentDay('sat') || currentDay('sun')
+const isWeekend = currentDay(6) || currentDay(0)
 const AVAIL_PROJECT = 1152701043959235
 
 // check avail to return users (1) currently on vacay (2) returning from vacay
