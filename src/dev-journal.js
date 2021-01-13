@@ -1,22 +1,82 @@
 const client = require('./client')
 
 
-const isMonday = new Date().getDay() === 1
-const isWeekend = new Date().getDay() === 6 || new Date().getDay() === 0
-const subtractMe = isMonday ? 3 : 1
-const prevWorkDay = new Date(new Date().setDate(new Date().getDate() - subtractMe))
-  .toISOString()
-  .split('T')[0]
+const _getDay = (date) => (day) => new Date(date).getUTCDay() === day
+const _checkDateRange = (start_on, due_on) => (date) => (
+  (date >= start_on && date <= due_on) || date === due_on
+)
+const currentDay = _getDay(new Date())
+const subtractMe = (date) => (_getDay(date)(1) ? 3 : 1)
+const prevWorkDay = (date) => (
+  new Date(new Date().setDate(new Date(date).getUTCDate() - subtractMe(date)))
+).toISOString().split('T')[0]
+
+const today = `${new Date().toISOString().split('T')[0]}`
+const isWeekend = currentDay(6) || currentDay(0)
+const AVAIL_PROJECT = 1152701043959235
+
+// check avail to return users (1) currently on vacay (2) returning from vacay
+const availCheck = async () => {
+  const [{ gid: VACAY_GID }] = await client.sections.getSectionsForProject(AVAIL_PROJECT)
+    .then(({ data }) => data.filter(({ name }) => name.toLowerCase().startsWith('vacation')))
+    .catch((e) => console.error(`Failed to fetch sections for avail project: ${e}`))
+
+  const avails = await client.tasks.getTasksForSection(
+    VACAY_GID,
+    { limit: 50, opt_fields: 'start_on,due_on,name,assignee' },
+  ).then(({ data }) => {
+    const onVacayPrevDay = []
+    const onVacayCurrentDay = []
+    data.forEach((task) => {
+      const { start_on, due_on } = task
+      const isAway = _checkDateRange(start_on, due_on)
+      if (isAway(prevWorkDay(today))) onVacayPrevDay.push(task)
+      if (isAway(today)) onVacayCurrentDay.push(task)
+    })
+
+    const isOnVacay = onVacayCurrentDay.map((t) => t?.assignee?.gid)
+    const backFromVacay = onVacayPrevDay.filter((t) => !isOnVacay.includes(t?.assignee?.gid))
+    return { onVacayPrevDay, onVacayCurrentDay, backFromVacay, isOnVacay }
+  }).catch((e) => console.error(`Failed to fetch avail: ${e}`))
+
+  return avails
+}
 
 // get last-work-day journals
-const getLWDJournals = async (DEV_JOURNAL) => {
-  const prevDayTasks = await client.tasks
+const getLWDJournals = async (DEV_JOURNAL, { backFromVacay, isOnVacay }) => {
+  let prevDayTasks = await client.tasks
     .getTasksForProject(
       DEV_JOURNAL,
-      { opt_fields: 'due_on,custom_fields,name,assignee,projects,workspace' },
+      {
+        opt_fields: 'due_on,custom_fields,name,assignee,projects,workspace',
+        completed_since: prevWorkDay(today),
+      },
     )
-    .then((r) => r.data.filter(({ due_on }) => due_on === prevWorkDay))
+    .then((r) => r.data.filter(({ due_on, assignee }) => (
+      due_on === prevWorkDay(today) && !isOnVacay.includes(assignee?.gid)
+    )))
     .catch((e) => console.error(`Failed to fetch prev-work-day tasks: ${e}`))
+
+  // add tasks for people that are back from vacay
+  const prevVacayTasks = await Promise.all(backFromVacay.map((t) => {
+    const assigneeGID = t?.assignee?.gid
+    const vacayStartDate = t?.start_on || t?.due_on
+    const prevVacay = prevWorkDay(vacayStartDate)
+
+    return client.tasks
+      .getTasksForProject(
+        DEV_JOURNAL,
+        {
+          completed_since: prevVacay,
+          opt_fields: 'due_on,custom_fields,name,assignee,projects,workspace',
+        },
+      )
+      .then((r) => r.data.find((t) => t?.due_on === prevVacay && t?.assignee?.gid === assigneeGID))
+      .catch((e) => console.error(`Failed to fetch prev-work-day tasks: ${e}`))
+  }))
+
+  // add in prev-vacay tasks as prev-workday tasks
+  prevDayTasks = [...prevDayTasks, ...prevVacayTasks]
 
   const getSubTasks = (task) => client.tasks
     .getSubtasksForTask(task, { opt_fields: 'gid,name,completed,resource_type' })
@@ -55,7 +115,8 @@ module.exports.createJournals = async (DEV_JOURNAL) => {
     return
   }
   try {
-    const prevJournals = await getLWDJournals(DEV_JOURNAL)
+    const avails = await availCheck()
+    const prevJournals = await getLWDJournals(DEV_JOURNAL, avails)
     await Promise.all(prevJournals.map(async ({
       name,
       assignee,
@@ -77,7 +138,7 @@ module.exports.createJournals = async (DEV_JOURNAL) => {
         name: nameTransform(name),
         assignee,
         completed: false,
-        due_on: `${new Date().toISOString().split('T')[0]}`,
+        due_on: today,
         projects: [projects],
         workspace,
         custom_fields: { [customField]: formatLWD(completedSubTasks) },
