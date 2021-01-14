@@ -28,14 +28,14 @@ const availCheck = async () => {
     const onVacayPrevDay = []
     const onVacayCurrentDay = []
     data.forEach((task) => {
-      const { start_on, due_on } = task
+      const { start_on, due_on, assignee } = task
       const isAway = _checkDateRange(start_on, due_on)
-      if (isAway(prevWorkDay(today))) onVacayPrevDay.push(task)
-      if (isAway(today)) onVacayCurrentDay.push(task)
+      if (isAway(prevWorkDay(today)) && assignee) onVacayPrevDay.push(task)
+      if (isAway(today) && assignee) onVacayCurrentDay.push(task)
     })
 
-    const isOnVacay = onVacayCurrentDay.map((t) => t?.assignee?.gid)
-    const backFromVacay = onVacayPrevDay.filter((t) => !isOnVacay.includes(t?.assignee?.gid))
+    const isOnVacay = onVacayCurrentDay.map((t) => t.assignee.gid)
+    const backFromVacay = onVacayPrevDay.filter((t) => !isOnVacay.includes(t.assignee.gid))
     return { onVacayPrevDay, onVacayCurrentDay, backFromVacay, isOnVacay }
   }).catch((e) => console.error(`Failed to fetch avail: ${e}`))
 
@@ -52,15 +52,18 @@ const getLWDJournals = async (DEV_JOURNAL, { backFromVacay, isOnVacay }) => {
         completed_since: prevWorkDay(today),
       },
     )
-    .then((r) => r.data.filter(({ due_on, assignee }) => (
-      due_on === prevWorkDay(today) && !isOnVacay.includes(assignee?.gid)
-    )))
+    .then((r) => r.data.filter(({ due_on, assignee }) => {
+      if (assignee) {
+        return due_on === prevWorkDay(today) && !isOnVacay.includes(assignee.gid)
+      }
+      return false
+    }))
     .catch((e) => console.error(`Failed to fetch prev-work-day tasks: ${e}`))
 
   // add tasks for people that are back from vacay
   const prevVacayTasks = await Promise.all(backFromVacay.map((t) => {
-    const assigneeGID = t?.assignee?.gid
-    const vacayStartDate = t?.start_on || t?.due_on
+    const assigneeGID = t.assignee.gid
+    const vacayStartDate = t.start_on || t.due_on
     const prevVacay = prevWorkDay(vacayStartDate)
 
     return client.tasks
@@ -71,7 +74,12 @@ const getLWDJournals = async (DEV_JOURNAL, { backFromVacay, isOnVacay }) => {
           opt_fields: 'due_on,custom_fields,name,assignee,projects,workspace',
         },
       )
-      .then((r) => r.data.find((t) => t?.due_on === prevVacay && t?.assignee?.gid === assigneeGID))
+      .then((r) => r.data.find(({ due_on, assignee }) => {
+        if (assignee) {
+          return due_on === prevVacay && assignee.gid === assigneeGID
+        }
+        return undefined
+      }))
       .catch((e) => console.error(`Failed to fetch prev-work-day tasks: ${e}`))
   }))
 
