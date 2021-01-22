@@ -84,7 +84,7 @@ const getLWDJournals = async (DEV_JOURNAL, { backFromVacay, isOnVacay }) => {
   }))
 
   // add in prev-vacay tasks as prev-workday tasks
-  prevDayTasks = [...prevDayTasks, ...prevVacayTasks]
+  prevDayTasks = [...prevDayTasks, ...prevVacayTasks].filter((r) => r)
 
   const getSubTasks = (task) => client.tasks
     .getSubtasksForTask(task, { opt_fields: 'gid,name,completed,resource_type' })
