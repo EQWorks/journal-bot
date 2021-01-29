@@ -10,6 +10,31 @@ const subtractMe = (date) => (_getDay(date)(1) ? 3 : 1)
 const prevWorkDay = (date) => (
   new Date(new Date().setDate(new Date(date).getUTCDate() - subtractMe(date)))
 ).toISOString().split('T')[0]
+const getPastDate = (subtractFrom, subtractMe) => {
+  const date = new Date(new Date().setDate(new Date(subtractFrom).getUTCDate() - (subtractMe + 2)))
+  return date.toISOString().split('T')[0]
+}
+const checkIdle = (subTasks, fromDate) => {
+  const isIdle = []
+  const hasLwdPrevDay = []
+  const noLwd = []
+  const today = `${new Date().toISOString().split('T')[0]}`
+  subTasks.forEach(({ due_on, assignee, custom_fields }) => {
+    const lwd = custom_fields.find(({ name }) => name.toLowerCase() === 'last workday')
+    const completed = (lwd || {}).text_value || ''
+    if (due_on === prevWorkDay(today) && completed.length) {
+      hasLwdPrevDay.push(assignee.gid)
+    }
+    if (assignee && due_on >= fromDate && !completed.length) {
+      noLwd.push(assignee.gid)
+    }
+    const count = noLwd.filter((a) => a === assignee.gid).length
+    if (count >= 5) {
+      isIdle.push(assignee.gid)
+    }
+  })
+  return [...new Set(isIdle)].filter((a) => ![...new Set(hasLwdPrevDay)].includes(a))
+}
 
 const today = `${new Date().toISOString().split('T')[0]}`
 const isWeekend = currentDay(6) || currentDay(0)
@@ -49,15 +74,18 @@ const getLWDJournals = async (DEV_JOURNAL, { backFromVacay, isOnVacay }) => {
       DEV_JOURNAL,
       {
         opt_fields: 'due_on,custom_fields,name,assignee,projects,workspace',
-        completed_since: prevWorkDay(today),
+        completed_since: getPastDate(today, 5),
       },
     )
-    .then((r) => r.data.filter(({ due_on, assignee }) => {
-      if (assignee) {
-        return due_on === prevWorkDay(today) && !isOnVacay.includes(assignee.gid)
-      }
-      return false
-    }))
+    .then((r) => {
+      const isIdle = checkIdle(r.data, getPastDate(today, 5))
+      return r.data.filter(({ due_on, assignee }) => {
+        if (assignee && !isIdle.includes(assignee.gid)) {
+          return due_on === prevWorkDay(today) && !isOnVacay.includes(assignee.gid)
+        }
+        return false
+      })
+    })
     .catch((e) => console.error(`Failed to fetch prev-work-day tasks: ${e}`))
 
   // add tasks for people that are back from vacay
