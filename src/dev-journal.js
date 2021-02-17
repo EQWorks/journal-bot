@@ -19,7 +19,7 @@ const checkIdle = (subTasks, fromDate) => {
   const hasLwdPrevDay = []
   const noLwd = []
   const today = `${new Date().toISOString().split('T')[0]}`
-  subTasks.forEach(({ due_on, assignee, custom_fields }) => {
+  subTasks.filter(({ assignee }) => assignee).forEach(({ due_on, assignee, custom_fields }) => {
     const lwd = custom_fields.find(({ name }) => name.toLowerCase() === 'last workday')
     const completed = (lwd || {}).text_value || ''
     if (due_on === prevWorkDay(today) && completed.length) {
