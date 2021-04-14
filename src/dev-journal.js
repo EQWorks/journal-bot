@@ -89,7 +89,9 @@ const getLWDJournals = async (DEV_JOURNAL, { backFromVacay, isOnVacay }) => {
     .catch((e) => console.error(`Failed to fetch prev-work-day tasks: ${e}`))
 
   // add tasks for people that are back from vacay
-  const prevVacayTasks = await Promise.all(backFromVacay.map((t) => {
+  const filteredBackFromVacay = backFromVacay.filter(({ assignee: { gid } }) => (
+    !(prevDayTasks.map(({ assignee: { gid } }) => gid).includes(gid))))
+  const prevVacayTasks = await Promise.all(filteredBackFromVacay.map((t) => {
     const assigneeGID = t.assignee.gid
     const vacayStartDate = t.start_on || t.due_on
     const prevVacay = prevWorkDay(vacayStartDate)
