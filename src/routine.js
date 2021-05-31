@@ -1,5 +1,6 @@
 const client = require('./client')
 const { createJournals } = require('./dev-journal')
+const { journalRoutine } = require('./notion')
 
 
 const { ASANA_PROJECT = '1152701043959235', BACKOFF = 30 } = process.env
@@ -20,7 +21,9 @@ const runner = async (time = 0) => {
   const [project = ASANA_PROJECT, action] = process.argv.slice(2)
   const backoff = parseInt(BACKOFF * (time + 1))
   try {
-    if (action === 'create_journal') {
+    if (project === 'notion_journal') {
+      await journalRoutine()
+    } else if (action === 'create_journal') {
       await createJournals(project)
     } else {
       await markPastDue(project)

@@ -9,6 +9,8 @@ const subtractMe = (date) => (_getDay(date)(1) ? 3 : 1)
 const prevWorkDay = (date) => (
   new Date(new Date().setDate(new Date(date).getUTCDate() - subtractMe(date)))
 ).toISOString().split('T')[0]
+const currentDay = _getDay(new Date())
+const isWeekend = currentDay(6) || currentDay(0)
 
 const getJournals = async ({ database_id, filters: { date } }) => {
   const { results = [] } = await notion.databases.query({
@@ -57,4 +59,5 @@ module.exports = {
   getJournalTasks,
   formatChildren,
   formatLWD,
+  isWeekend,
 }
