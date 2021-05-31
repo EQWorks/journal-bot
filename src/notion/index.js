@@ -1,20 +1,19 @@
 const notion = require('./notion-client')
+const { databases } = require('./config')
 const { prevWorkDay, getJournals, getJournalTasks, formatChildren, formatLWD } = require('./util')
 
 
-const { DATABASE_ID } = process.env
-
 const today = `${new Date().toISOString().split('T')[0]}`
-const journalRoutine = async () => {
+const journalRoutine = async ({ database_id }) => {
   try {
     const prevDayJournals = await getJournals({
-      database_id: DATABASE_ID,
+      database_id,
       filters: { date: prevWorkDay(today) },
     })
     prevDayJournals.map(async ({ id, Name, Assignee }) => {
       const { completedTasks, incompleteTasks } = await getJournalTasks({ block_id: id })
       await notion.pages.create({
-        parent: { database_id: DATABASE_ID },
+        parent: { database_id },
         properties: {
           Name,
           Assignee,
@@ -32,4 +31,4 @@ const journalRoutine = async () => {
   }
 }
 
-journalRoutine()
+databases.forEach(({ id }) => journalRoutine({ database_id: id }))

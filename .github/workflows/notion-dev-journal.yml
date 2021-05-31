@@ -33,5 +33,4 @@ jobs:
       - name: Create new journals
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          DATABASE_ID: ${{ secrets.DATABASE_ID }}
         run: yarn journal
