@@ -4,6 +4,7 @@
   "main": "./src/index.js",
   "license": "MIT",
   "scripts": {
+    "journal": "node ./src/notion/index.js",
     "routine": "node ./src/routine.js",
     "lint": "eslint --ext .js ./src/.",
     "lint:fix": "eslint --ext .js ./src/. --fix",
@@ -14,6 +15,7 @@
     "lint:watch:nowarn:fix": "esw --ext .js ./src/. --quiet --watch --fix"
   },
   "dependencies": {
+    "@notionhq/client": "^0.1.8",
     "asana": "^0.18.5"
   },
   "devDependencies": {
