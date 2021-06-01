@@ -25,7 +25,7 @@ const getJournals = async ({ database_id, filters: { date } }) => {
 
 const filterTasks = ({ tasks, completed }) => tasks.map(({ to_do }) => {
   if (to_do && to_do.checked === completed) {
-    return to_do.text[0].plain_text
+    return to_do.text
   }
   return false
 }).filter((r) => r)
@@ -40,14 +40,15 @@ const getJournalTasks = async ({ block_id }) => {
 const formatChildren = (tasks) => (tasks.map((t) => ({
   object: 'block',
   type: 'to_do',
-  to_do: { text: [{ type: 'text', text: { content: t } }] },
+  to_do: { text: t },
 })))
 
 // format completed tasks into single string
 //    --> TODO: match format with updates
 const formatLWD = (tasks) => {
   if (tasks.length) {
-    return `* ${tasks.join('\n* ')}`
+    const taskPlainText = tasks.map((task) => (task.map(({ plain_text }) => plain_text)).join(''))
+    return `* ${taskPlainText.join('\n* ')}`
   }
   return ''
 }

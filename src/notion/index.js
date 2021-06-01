@@ -23,6 +23,7 @@ module.exports.journalRoutine = async () => {
       })
       await Promise.all(prevDayJournals.map(async ({ id, Name, Assignee }) => {
         const { completedTasks, incompleteTasks } = await getJournalTasks({ block_id: id })
+        formatChildren(incompleteTasks)
         await notion.pages.create({
           parent: { database_id },
           properties: {
