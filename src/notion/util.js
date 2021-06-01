@@ -17,10 +17,7 @@ const getJournals = async ({ database_id, filters: { date } }) => {
     database_id,
     filter: { property: 'Date', date: { equals: date } },
   })
-  return results.map(({
-    id,
-    properties: { Assignee, Name },
-  }) => ({ id, Name, Assignee }))
+  return results.map(({ id, properties: { Assignee, Name } }) => ({ id, Name, Assignee }))
 }
 
 const filterTasks = ({ tasks, completed }) => tasks.map(({ to_do }) => {
@@ -53,6 +50,24 @@ const formatLWD = (tasks) => {
   return ''
 }
 
+const nameTransform = ({ Name, incompleteTasks }) => {
+  const { title: [{ plain_text: name }] } = Name
+  let plain_text = name
+  const m = name.match(/(?<person>.*)[(]\d+[)]$/)
+  if (m) {
+    const { groups: { person } } = m
+    plain_text = `${person.trim()} (${incompleteTasks.length})`
+  }
+  return ({
+    ...Name,
+    title: [{
+      ...Name.title[0],
+      text: { ...Name.title[0].text, content: plain_text },
+      plain_text,
+    }],
+  })
+}
+
 module.exports = {
   showObject,
   prevWorkDay,
@@ -60,5 +75,6 @@ module.exports = {
   getJournalTasks,
   formatChildren,
   formatLWD,
+  nameTransform,
   isWeekend,
 }
