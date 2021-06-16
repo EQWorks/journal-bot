@@ -17,7 +17,9 @@ const getJournals = async ({ database_id, filters: { date } }) => {
     database_id,
     filter: { property: 'Date', date: { equals: date } },
   })
-  return results.map(({ id, properties: { Assignee, Name } }) => ({ id, Name, Assignee }))
+  return results.map(({ id, properties: { Assignee, Name, Idle } }) => (
+    { id, Name, Assignee, Idle }
+  ))
 }
 
 const filterTasks = ({ tasks, completed }) => tasks.map(({ to_do }) => {
@@ -68,6 +70,29 @@ const nameTransform = ({ Name, incompleteTasks }) => {
   })
 }
 
+const filterIdle = async (prevDayJournals) => {
+  const activeJournals = await Promise.all(prevDayJournals.map(async ({ id, Idle, Name, Assignee }) => {
+    const { completedTasks, incompleteTasks } = await getJournalTasks({ block_id: id })
+    let idle = Idle
+
+    if (Idle && completedTasks.length) {
+      idle = undefined
+    }
+    if (!completedTasks.length) {
+      if (Idle) {
+        const { number } = Idle
+        if (number >= 5) return null
+        idle = { ...Idle, number: Idle.number + 1 }
+      } else {
+        idle = { type: 'number', number: 1 }
+      }
+    }
+
+    return { id, Idle: idle, Name, Assignee, completedTasks, incompleteTasks }
+  }))
+  return activeJournals.filter((r) => r)
+}
+
 module.exports = {
   showObject,
   prevWorkDay,
@@ -76,5 +101,6 @@ module.exports = {
   formatChildren,
   formatLWD,
   nameTransform,
+  filterIdle,
   isWeekend,
 }
