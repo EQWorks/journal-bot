@@ -2,7 +2,8 @@ name: Routine
 
 on:
   schedule:
-    - cron: '5 10 * * * '
+    # updates runs at UTC 06:00, creating notion journals 1hr before updates
+    - cron: '5 5 * * * '
 
 jobs:
   routine:
