@@ -33,7 +33,7 @@ module.exports.journalRoutine = async () => {
               Date: { type: 'date', date: { start: today } },
               'Last Workday': {
                 type: 'rich_text',
-                rich_text: [{ type: 'text', text: { content: formatLWD(completedTasks) } }],
+                rich_text: formatLWD(completedTasks).flat(),
               },
               Idle,
             },

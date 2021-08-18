@@ -46,8 +46,24 @@ const formatChildren = (tasks) => (tasks.map((t) => ({
 //    --> TODO: match format with updates
 const formatLWD = (tasks) => {
   if (tasks.length) {
-    const taskPlainText = tasks.map((task) => (task.map(({ plain_text }) => plain_text)).join(''))
-    return `* ${taskPlainText.join('\n* ')}`
+    const taskPlainText = tasks.map((task) => (task.map((t, i) => {
+      if (i === 0) {
+        return ({
+          ...t,
+          plain_text: `* ${t.plain_text}`,
+          text: { content: `* ${t.plain_text}`, link: t?.href },
+        })
+      }
+      if (i === (task.length - 1)) {
+        return ({
+          ...t,
+          plain_text: `${t.plain_text}\n`,
+          text: { content: `${t.plain_text}\n`, link: t?.href },
+        })
+      }
+      return t
+    })))
+    return taskPlainText
   }
   return ''
 }
