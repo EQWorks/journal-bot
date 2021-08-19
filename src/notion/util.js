@@ -48,10 +48,11 @@ const formatLWD = (tasks) => {
   if (tasks.length) {
     const taskPlainText = tasks.map((task) => (task.map((t, i) => {
       if (i === 0) {
+        const newLine = task.length === 1 ? '\n' : ''
         return ({
           ...t,
-          plain_text: `* ${t.plain_text}`,
-          text: { content: `* ${t.plain_text}`, link: t.href },
+          plain_text: `* ${t.plain_text}${newLine}`,
+          text: { content: `* ${t.plain_text}${newLine}`, link: t.href },
         })
       }
       if (i === (task.length - 1)) {
