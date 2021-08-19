@@ -51,21 +51,21 @@ const formatLWD = (tasks) => {
         return ({
           ...t,
           plain_text: `* ${t.plain_text}`,
-          text: { content: `* ${t.plain_text}`, link: t?.href },
+          text: { content: `* ${t.plain_text}`, link: t.href },
         })
       }
       if (i === (task.length - 1)) {
         return ({
           ...t,
           plain_text: `${t.plain_text}\n`,
-          text: { content: `${t.plain_text}\n`, link: t?.href },
+          text: { content: `${t.plain_text}\n`, link: t.href },
         })
       }
       return t
     })))
     return taskPlainText
   }
-  return ''
+  return []
 }
 
 const nameTransform = ({ Name, incompleteTasks }) => {
