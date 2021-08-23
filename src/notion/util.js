@@ -69,44 +69,54 @@ const formatLWD = (tasks) => {
   return []
 }
 
-const nameTransform = ({ Name, incompleteTasks }) => {
-  const { title: [{ plain_text: name }] } = Name
+const nameTransform = ({ Name, incompleteTasks, Assignee }) => {
+  let _Name = Name
+  if (Assignee.people.length && !(Name.title.length)) {
+    _Name = { ...Name, title: [{ text: {}, plain_text: (Assignee.people[0].name).split(' ')[0] }] }
+  }
+
+  const { title: [{ plain_text: name }] } = _Name
   let plain_text = name
+
   const m = name.match(/(?<person>.*)[(]\d+[)]$/)
   if (m) {
     const { groups: { person } } = m
     plain_text = `${person.trim()} (${incompleteTasks.length})`
   }
+
   return ({
-    ...Name,
+    ..._Name,
     title: [{
-      ...Name.title[0],
-      text: { ...Name.title[0].text, content: plain_text },
+      ..._Name.title[0],
+      text: { ..._Name.title[0].text, content: plain_text },
       plain_text,
     }],
   })
 }
 
 const filterIdle = async (prevDayJournals) => {
-  const activeJournals = await Promise.all(prevDayJournals.map(async ({ id, Idle, Name, Assignee }) => {
-    const { completedTasks, incompleteTasks } = await getJournalTasks({ block_id: id })
-    let idle = Idle
+  const activeJournals = await Promise.all(prevDayJournals
+    .map(async ({ id, Idle, Name, Assignee }) => {
+      if (!(Assignee.people.length) && !(Name.title.length)) return null
 
-    if (Idle && completedTasks.length) {
-      idle = undefined
-    }
-    if (!completedTasks.length) {
-      if (Idle) {
-        const { number } = Idle
-        if (number >= 5) return null
-        idle = { ...Idle, number: Idle.number + 1 }
-      } else {
-        idle = { type: 'number', number: 1 }
+      const { completedTasks, incompleteTasks } = await getJournalTasks({ block_id: id })
+      let idle = Idle
+
+      if (Idle && completedTasks.length) {
+        idle = undefined
       }
-    }
+      if (!completedTasks.length) {
+        if (Idle) {
+          const { number } = Idle
+          if (number >= 5) return null
+          idle = { ...Idle, number: Idle.number + 1 }
+        } else {
+          idle = { type: 'number', number: 1 }
+        }
+      }
 
-    return { id, Idle: idle, Name, Assignee, completedTasks, incompleteTasks }
-  }))
+      return { id, Idle: idle, Name, Assignee, completedTasks, incompleteTasks }
+    }))
   return activeJournals.filter((r) => r)
 }
 
