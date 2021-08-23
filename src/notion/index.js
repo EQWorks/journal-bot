@@ -28,7 +28,7 @@ module.exports.journalRoutine = async () => {
           await notion.pages.create({
             parent: { database_id },
             properties: {
-              Name: nameTransform({ Name, incompleteTasks }),
+              Name: nameTransform({ Name, incompleteTasks, Assignee }),
               Assignee,
               Date: { type: 'date', date: { start: today } },
               'Last Workday': {
