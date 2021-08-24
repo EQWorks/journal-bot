@@ -47,19 +47,20 @@ const formatChildren = (tasks) => (tasks.map((t) => ({
 const formatLWD = (tasks) => {
   if (tasks.length) {
     const taskPlainText = tasks.map((task) => (task.map((t, i) => {
+      const link = t.href ? { url: t.href } : null
       if (i === 0) {
         const newLine = task.length === 1 ? '\n' : ''
         return ({
           ...t,
           plain_text: `* ${t.plain_text}${newLine}`,
-          text: { content: `* ${t.plain_text}${newLine}`, link: t.href },
+          text: { content: `* ${t.plain_text}${newLine}`, link },
         })
       }
       if (i === (task.length - 1)) {
         return ({
           ...t,
           plain_text: `${t.plain_text}\n`,
-          text: { content: `${t.plain_text}\n`, link: t.href },
+          text: { content: `${t.plain_text}\n`, link },
         })
       }
       return t
