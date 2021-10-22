@@ -31,7 +31,7 @@ jobs:
             ${{ runner.OS }}-
       - run: yarn install
 
-      - name: Create new journals
+      - name: Create Dev Journals
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-        run: yarn routine notion_journal
+        run: yarn routine dev_journal
