@@ -17,7 +17,7 @@ const markPastDue = (project = ASANA_PROJECT) => client.projects.tasks(project, 
 })
 
 const runner = async (time = 0) => {
-  const [project = ASANA_PROJECT, action] = process.argv.slice(2)
+  const [project = ASANA_PROJECT] = process.argv.slice(2)
   const backoff = parseInt(BACKOFF * (time + 1))
   try {
     if (project === 'notion_journal') {
