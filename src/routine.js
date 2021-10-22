@@ -1,5 +1,4 @@
 const client = require('./client')
-const { createJournals } = require('./dev-journal')
 const { journalRoutine } = require('./notion')
 
 
@@ -23,8 +22,6 @@ const runner = async (time = 0) => {
   try {
     if (project === 'notion_journal') {
       await journalRoutine()
-    } else if (action === 'create_journal') {
-      await createJournals(project)
     } else {
       await markPastDue(project)
     }
