@@ -17,9 +17,10 @@ const getJournals = async ({ database_id, filters: { date } }) => {
     database_id,
     filter: { property: 'Date', date: { equals: date } },
   })
-  return results.map(({ id, properties: { Assignee, Name, Idle } }) => (
-    { id, Name, Assignee, Idle }
-  ))
+  return results.map(({ id, properties: { Assignee, Name, Idle } }) => {
+    if (!Assignee.people.length) return null
+    return ({ id, Name, Assignee, Idle })
+  }).filter((r) => r)
 }
 
 const filterTasks = ({ tasks, completed }) => tasks.map(({ to_do }) => {
@@ -39,7 +40,13 @@ const getJournalTasks = async ({ block_id }) => {
 const formatChildren = (tasks) => (tasks.map((t) => ({
   object: 'block',
   type: 'to_do',
-  to_do: { text: t },
+  to_do: { text: t.map((t) => {
+    if (t.type === 'mention') {
+      delete t.mention
+      return ({ ...t, type: 'text', text: { content: t.href, link: { url: t.href } } })
+    }
+    return t
+  } ) },
 })))
 
 // format completed tasks into single string
@@ -52,6 +59,7 @@ const formatLWD = (tasks) => {
         const newLine = task.length === 1 ? '\n' : ''
         return ({
           ...t,
+          type: 'text',
           plain_text: `* ${t.plain_text}${newLine}`,
           text: { content: `* ${t.plain_text}${newLine}`, link },
         })
@@ -59,6 +67,7 @@ const formatLWD = (tasks) => {
       if (i === (task.length - 1)) {
         return ({
           ...t,
+          type: 'text',
           plain_text: `${t.plain_text}\n`,
           text: { content: `${t.plain_text}\n`, link },
         })
