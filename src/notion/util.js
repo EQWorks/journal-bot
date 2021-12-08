@@ -54,25 +54,29 @@ const formatChildren = (tasks) => (tasks.map((t) => ({
 const formatLWD = (tasks) => {
   if (tasks.length) {
     const taskPlainText = tasks.map((task) => (task.map((t, i) => {
-      const link = t.href ? { url: t.href } : null
+      let taskDetails = t
+      if (t.type === 'mention') {
+        delete t.mention
+        taskDetails = { ...t, type: 'text', text: { content: t.plain_text, link: { url: t.href } } }
+      }
+
+      const link = taskDetails.href ? { url: taskDetails.href } : null
       if (i === 0) {
         const newLine = task.length === 1 ? '\n' : ''
         return ({
-          ...t,
-          type: 'text',
+          ...taskDetails,
           plain_text: `* ${t.plain_text}${newLine}`,
           text: { content: `* ${t.plain_text}${newLine}`, link },
         })
       }
       if (i === (task.length - 1)) {
         return ({
-          ...t,
-          type: 'text',
+          ...taskDetails,
           plain_text: `${t.plain_text}\n`,
           text: { content: `${t.plain_text}\n`, link },
         })
       }
-      return t
+      return taskDetails
     })))
     return taskPlainText
   }
