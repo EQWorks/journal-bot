@@ -23,61 +23,102 @@ const getJournals = async ({ database_id, filters: { date } }) => {
   }).filter((r) => r)
 }
 
-const filterTasks = ({ tasks, completed }) => tasks.map(({ to_do }) => {
-  if (to_do && to_do.checked === completed) {
-    return to_do.text
+const parseSyncedTasks = async (results) => {
+  let completedTasks = []
+  let incompleteTasks = []
+
+  for (const task of results) {
+    let synced = []
+
+    if (task.to_do) {
+      (task.to_do.checked || task.checked)
+        ? completedTasks = [...completedTasks, task]
+        : incompleteTasks = [...incompleteTasks, task]
+    }
+    // NOTE: having journal tasks as the original block will not continue to sync in the carried-over tasks
+    if (task.synced_block && task.has_children) {
+      const syncedTask = await notion.blocks.children.list({ block_id: task.id })
+      synced = syncedTask.results
+    }
+    // NOTE: must grant access to DevJournal integration if syncing tasks from external dbs
+    if (task.synced_block?.synced_from) {
+      const originalTask = await notion.blocks.retrieve({ block_id: task.synced_block.synced_from.block_id })
+      synced = [originalTask]
+    }
+
+    if (synced.length) {
+      const { completedTasks: ct, incompleteTasks: ict } = await parseSyncedTasks(synced)
+      completedTasks = [...completedTasks, ...(ct?.length ? [{ ...task, children: ct }] : [])]
+      incompleteTasks = [...incompleteTasks, ...(ict?.length ? [{ ...task, children: ict }] : [])]
+    }
   }
-  return false
-}).filter((r) => r)
-const getJournalTasks = async ({ block_id }) => {
-  const { results = [] } = await notion.blocks.children.list({ block_id })
-  return {
-    completedTasks: filterTasks({ tasks: results, completed: true }),
-    incompleteTasks: filterTasks({ tasks: results, completed: false }),
-  }
+
+  return { completedTasks, incompleteTasks }
 }
 
-const formatChildren = (tasks) => (tasks.map((t) => ({
-  object: 'block',
-  type: 'to_do',
-  to_do: { text: t.map((t) => {
-    if (t.type === 'mention') {
-      delete t.mention
-      return ({ ...t, type: 'text', text: { content: t.href, link: { url: t.href } } })
-    }
-    return t
-  } ) },
-})))
+const getJournalTasks = async ({ block_id }) => {
+  const { results = [] } = await notion.blocks.children.list({ block_id })
+  return parseSyncedTasks(results)
+}
+
+const formatChildren = (tasks) => (tasks.map((t) => {
+  if (t.to_do) {
+    return ({
+      object: 'block',
+      type: 'to_do',
+      to_do: { rich_text: t.to_do.rich_text.map((t) => {
+        if (t.type === 'mention') {
+          delete t.mention
+          return ({ ...t, type: 'text', text: { content: t.href, link: { url: t.href } } })
+        }
+        return t
+      } ) },
+    })
+  }
+  if (t.synced_block) {
+    return ({
+      object: 'block',
+      type: 'synced_block',
+      synced_block: {
+        ...t.synced_block,
+        children: formatChildren(t.children),
+      },
+    })
+  }
+  return t
+}))
 
 // format completed tasks into single string
 //    --> TODO: match format with updates
 const formatLWD = (tasks) => {
   if (tasks.length) {
-    const taskPlainText = tasks.map((task) => (task.map((t, i) => {
-      let taskDetails = t
-      if (t.type === 'mention') {
-        delete t.mention
-        taskDetails = { ...t, type: 'text', text: { content: t.plain_text, link: { url: t.href } } }
-      }
+    const taskPlainText = tasks.map((task, index) => {
+      if (task.to_do) {
+        return (task.to_do.rich_text.map((t, i) => {
+          let taskDetails = t
 
-      const link = taskDetails.href ? { url: taskDetails.href } : null
-      if (i === 0) {
-        const newLine = task.length === 1 ? '\n' : ''
-        return ({
-          ...taskDetails,
-          plain_text: `* ${t.plain_text}${newLine}`,
-          text: { content: `* ${t.plain_text}${newLine}`, link },
-        })
+          if (t.type === 'mention') {
+            delete t.mention
+            taskDetails = { ...t, type: 'text', text: { content: t.plain_text, link: { url: t.href } } }
+          }
+
+          const link = taskDetails.href ? { url: taskDetails.href } : null
+          if (i === 0) {
+            const newLine = index ? '\n' : ''
+            return ({
+              ...taskDetails,
+              plain_text: `${newLine}* ${t.plain_text}`,
+              text: { content: `${newLine}* ${t.plain_text}`, link },
+            })
+          }
+
+          return taskDetails
+        }))
       }
-      if (i === (task.length - 1)) {
-        return ({
-          ...taskDetails,
-          plain_text: `${t.plain_text}\n`,
-          text: { content: `${t.plain_text}\n`, link },
-        })
+      if (task.synced_block && task.children.length) {
+        return formatLWD(task.children).flat()
       }
-      return taskDetails
-    })))
+    })
     return taskPlainText
   }
   return []
