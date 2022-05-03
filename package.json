@@ -14,7 +14,7 @@
     "lint:watch:nowarn:fix": "esw --ext .js ./src/. --quiet --watch --fix"
   },
   "dependencies": {
-    "@notionhq/client": "^0.1.8"
+    "@notionhq/client": "^1.0.4"
   },
   "devDependencies": {
     "eslint": "^7.18.0",
