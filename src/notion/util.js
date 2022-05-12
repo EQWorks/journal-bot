@@ -90,7 +90,7 @@ const formatChildren = (tasks) => (tasks.map((t) => {
 
 // format completed tasks into single string
 //    --> TODO: match format with updates
-const formatLWD = (tasks) => {
+const formatLWD = (tasks, s=0) => {
   if (tasks.length) {
     const taskPlainText = tasks.map((task, index) => {
       if (task.to_do) {
@@ -104,7 +104,7 @@ const formatLWD = (tasks) => {
 
           const link = taskDetails.href ? { url: taskDetails.href } : null
           if (i === 0) {
-            const newLine = index ? '\n' : ''
+            const newLine = (index || s) ? '\n' : ''
             return ({
               ...taskDetails,
               plain_text: `${newLine}* ${t.plain_text}`,
@@ -116,7 +116,7 @@ const formatLWD = (tasks) => {
         }))
       }
       if (task.synced_block && task.children.length) {
-        return formatLWD(task.children).flat()
+        return formatLWD(task.children, s++).flat()
       }
     })
     return taskPlainText
