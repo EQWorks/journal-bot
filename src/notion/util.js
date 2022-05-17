@@ -23,7 +23,7 @@ const getJournals = async ({ database_id, filters: { date } }) => {
   }).filter((r) => r)
 }
 
-const parseSyncedTasks = async (results) => {
+const tasksTransform = async (results) => {
   let completedTasks = []
   let incompleteTasks = []
 
@@ -47,9 +47,20 @@ const parseSyncedTasks = async (results) => {
     }
 
     if (synced.length) {
-      const { completedTasks: ct, incompleteTasks: ict } = await parseSyncedTasks(synced)
+      const { completedTasks: ct, incompleteTasks: ict } = await tasksTransform(synced)
       completedTasks = [...completedTasks, ...(ct?.length ? [{ ...task, children: ct }] : [])]
       incompleteTasks = [...incompleteTasks, ...(ict?.length ? [{ ...task, children: ict }] : [])]
+    }
+
+    if (task.column_list) {
+      const { results } = await notion.blocks.children.list({ block_id: task.id })
+      const lists = await Promise.all(results.map(async ({ id: block_id }) => await notion.blocks.children.list({ block_id }) ))
+      const incompleteLists = await Promise.all(lists.map(async (list) => {
+        const { completedTasks: listCt, incompleteTasks: listIct } = await tasksTransform(list.results)
+        completedTasks = [...completedTasks, ...listCt]
+        return listIct
+      }))
+      incompleteTasks = [...incompleteTasks, { ...task, children: incompleteLists }]
     }
   }
 
@@ -58,7 +69,7 @@ const parseSyncedTasks = async (results) => {
 
 const getJournalTasks = async ({ block_id }) => {
   const { results = [] } = await notion.blocks.children.list({ block_id })
-  return parseSyncedTasks(results)
+  return tasksTransform(results)
 }
 
 const formatChildren = (tasks) => (tasks.map((t) => {
@@ -82,6 +93,18 @@ const formatChildren = (tasks) => (tasks.map((t) => {
       synced_block: {
         ...t.synced_block,
         children: formatChildren(t.children),
+      },
+    })
+  }
+  if (t.column_list) {
+    return ({
+      object: 'block',
+      type: 'column_list',
+      column_list: {
+        ...t.column_list,
+        children: formatChildren(t.children).map((children) => (
+          { object: 'block', type: 'column', column: { children } }
+        )),
       },
     })
   }
