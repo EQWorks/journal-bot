@@ -31,9 +31,26 @@ const tasksTransform = async (results) => {
     let synced = []
 
     if (task.to_do) {
-      (task.to_do.checked || task.checked)
-        ? completedTasks = [...completedTasks, task]
-        : incompleteTasks = [...incompleteTasks, task]
+      let children = []
+      if (task.has_children) {
+        const { results = [] } = await notion.blocks.children.list({ block_id: task.id })
+        children = results
+      }
+      if (task.to_do.checked || task.checked) {
+        completedTasks = [...completedTasks, task, ...children]
+      } else {
+        const childrenComplete = children.filter(({ to_do }) => to_do.checked)
+        const childrenIncomplete = children.filter(({ to_do }) => !to_do.checked)
+
+        completedTasks = [...completedTasks, ...childrenComplete]
+        incompleteTasks = [
+          ...incompleteTasks,
+          { ...task, to_do: {
+            ...task.to_do,
+            ...(task.has_children && children.length ? { children: childrenIncomplete } : {}),
+          } },
+        ]
+      }
     }
     // NOTE: having journal tasks as the original block will not continue to sync in the carried-over tasks
     if (task.synced_block && task.has_children) {
@@ -77,13 +94,16 @@ const formatChildren = (tasks) => (tasks.map((t) => {
     return ({
       object: 'block',
       type: 'to_do',
-      to_do: { rich_text: t.to_do.rich_text.map((t) => {
-        if (t.type === 'mention') {
-          delete t.mention
-          return ({ ...t, type: 'text', text: { content: t.href, link: { url: t.href } } })
-        }
-        return t
-      } ) },
+      to_do: {
+        ...t.to_do,
+        rich_text: t.to_do.rich_text.map((t) => {
+          if (t.type === 'mention') {
+            delete t.mention
+            return ({ ...t, type: 'text', text: { content: t.href, link: { url: t.href } } })
+          }
+          return t
+        } ),
+      },
     })
   }
   if (t.synced_block) {
@@ -102,9 +122,11 @@ const formatChildren = (tasks) => (tasks.map((t) => {
       type: 'column_list',
       column_list: {
         ...t.column_list,
-        children: formatChildren(t.children).map((children) => (
-          { object: 'block', type: 'column', column: { children } }
-        )),
+        children: formatChildren(t.children)
+          .filter((c) => c.length)
+          .map((children) => (
+            { object: 'block', type: 'column', column: { children } }
+          )),
       },
     })
   }
