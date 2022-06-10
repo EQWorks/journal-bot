@@ -144,7 +144,11 @@ const formatLWD = (tasks, s=0) => {
 
           if (t.type === 'mention') {
             delete t.mention
-            taskDetails = { ...t, type: 'text', text: { content: t.plain_text, link: { url: t.href } } }
+            taskDetails = {
+              ...t,
+              type: 'text',
+              text: { content: t.plain_text, link: t.href ? { url: t.href } : null },
+            }
           }
 
           const link = taskDetails.href ? { url: taskDetails.href } : null
