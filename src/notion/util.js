@@ -39,8 +39,10 @@ const tasksTransform = async (results) => {
       if (task.to_do.checked || task.checked) {
         completedTasks = [...completedTasks, task, ...children]
       } else {
-        const childrenComplete = children.filter(({ to_do }) => to_do.checked)
-        const childrenIncomplete = children.filter(({ to_do }) => !to_do.checked)
+        const childrenComplete = children.filter(({ to_do }) => to_do?.checked)
+        const childrenIncomplete = children
+          .filter(({ to_do }) => to_do && !to_do.checked)
+          .map(({ object, type, to_do }) => ({ object, type, to_do }))
 
         completedTasks = [...completedTasks, ...childrenComplete]
         incompleteTasks = [
@@ -168,7 +170,7 @@ const formatLWD = (tasks, s=0) => {
         return formatLWD(task.children, s++).flat()
       }
     })
-    return taskPlainText
+    return taskPlainText.filter((r) => r)
   }
   return []
 }
