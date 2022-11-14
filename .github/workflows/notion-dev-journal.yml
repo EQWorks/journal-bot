@@ -4,32 +4,20 @@ on:
   schedule:
     # updates runs at UTC 06:00, creating notion journals 1hr before updates
     - cron: '5 5 * * * '
+  # for manual trigger
+  workflow_dispatch:
 
 jobs:
   routine:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [14.x]
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
-      - name: Set Node.js version
-        uses: actions/setup-node@v1
+      - uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Cache Node Modules
-        uses: actions/cache@v1
-        with:
-          path: node_modules
-          key: ${{ runner.OS }}-build-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.OS }}-build-${{ env.cache-name }}-
-            ${{ runner.OS }}-build-
-            ${{ runner.OS }}-
-      - run: yarn install
+          node-version: 14.x
+          cache: 'yarn'
 
       - name: Create Dev Journals
         env:
