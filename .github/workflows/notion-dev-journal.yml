@@ -19,6 +19,8 @@ jobs:
           node-version: 14.x
           cache: 'yarn'
 
+      - run: yarn install
+
       - name: Create Dev Journals
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
